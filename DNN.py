@@ -2,16 +2,14 @@ import copy
 import json
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-import tensorflow as tf
 import Constant
-from sklearn.metrics import classification_report
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler
+from ML_Algorithm.MyDNN import MyDNN
 
 
-class DNN:
+class DNN(MyDNN):
     def __init__(self):
+        MyDNN.__init__(self)
         # self.__generate_dataset()
         self.__dataset_dict = self.__load_dataset()
 
@@ -28,8 +26,8 @@ class DNN:
             cs_te_label_array = dataset_dict[Constant.DNN.CS_TE_LABEL]
 
             cs_fig_save_path = Constant.DNN.CS_FIG_PATH + '_' + scenario + '.png'
-            param_cs_result_dict = self.__dnn(cs_tr_data_array, cs_tr_label_array, cs_te_data_array, cs_te_label_array,
-                                              cs_fig_save_path)
+            param_cs_result_dict = self._run_dnn(cs_tr_data_array, cs_tr_label_array, cs_te_data_array,
+                                                 cs_te_label_array, cs_fig_save_path)
             cs_result_dict[scenario] = param_cs_result_dict
 
             gs_tr_data_array = dataset_dict[Constant.DNN.GS_TR_DATA]
@@ -38,72 +36,14 @@ class DNN:
             gs_te_label_array = dataset_dict[Constant.DNN.GS_TE_LABEL]
 
             gs_fig_save_path = Constant.DNN.GS_FIG_PATH + '_' + scenario + '.png'
-            param_gs_result_dict = self.__dnn(gs_tr_data_array, gs_tr_label_array, gs_te_data_array, gs_te_label_array,
-                                              gs_fig_save_path)
+            param_gs_result_dict = self._run_dnn(gs_tr_data_array, gs_tr_label_array, gs_te_data_array,
+                                                 gs_te_label_array, gs_fig_save_path)
             gs_result_dict[scenario] = param_gs_result_dict
 
         with open(Constant.DNN.CS_RESULT_PATH, 'w') as f:
             json.dump(cs_result_dict, f)
         with open(Constant.DNN.GS_RESULT_PATH, 'w') as f:
             json.dump(gs_result_dict, f)
-
-    @classmethod
-    def __dnn(cls, X_train, y_train, X_test, y_test, fig_save_path) -> dict:
-        scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_test_scaled = scaler.transform(X_test)
-
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Dense(64, input_shape=(X_train_scaled.shape[1],), activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.5),
-            tf.keras.layers.Dense(16, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.5),
-            tf.keras.layers.Dense(4, activation='relu'),
-            tf.keras.layers.BatchNormalization(),
-            tf.keras.layers.Dropout(0.5),
-
-            tf.keras.layers.Dense(1, activation='sigmoid')
-        ])
-
-        nadam_optimizer = tf.keras.optimizers.Nadam(learning_rate=0.001)
-        model.compile(optimizer=nadam_optimizer, loss='binary_crossentropy', metrics=['accuracy'])
-
-        callbacks = [
-            tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=100,
-                                             restore_best_weights=True, mode='max')
-        ]
-
-        history = model.fit(X_train_scaled, y_train, validation_data=(X_test_scaled, y_test),
-                            epochs=1000, batch_size=32, callbacks=callbacks)
-
-        y_pred = model.predict(X_test_scaled)
-        y_pred = (y_pred > 0.5).astype(int)
-
-        plt.figure(figsize=(16, 8))
-
-        plt.subplot(1, 2, 1)
-        plt.plot(history.history['loss'], label='Train Loss')
-        plt.plot(history.history['val_loss'], label='Validation Loss')
-        plt.title('Model Loss')
-        plt.xlabel('Epoch')
-        plt.ylabel('Loss')
-        plt.legend()
-
-        plt.subplot(1, 2, 2)
-        plt.plot(history.history['accuracy'], label='Train Accuracy')
-        plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
-        plt.title('Model Accuracy')
-        plt.xlabel('Epoch')
-        plt.ylabel('Accuracy')
-        plt.legend()
-        plt.savefig(fig_save_path)
-        plt.close()
-
-        result = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
-
-        return result
 
     @classmethod
     def __load_dataset(cls) -> dict:
