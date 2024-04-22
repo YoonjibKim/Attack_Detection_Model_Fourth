@@ -1,3 +1,586 @@
+import copy
+import json
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import tensorflow as tf
+import Constant
+from sklearn.metrics import classification_report
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+
 class DNN:
     def __init__(self):
-        pass
+        # self.__generate_dataset()
+        self.__dataset_dict = self.__load_dataset()
+
+    def run(self):
+        cs_result_dict = {}
+        gs_result_dict = {}
+
+        for scenario, dataset_dict in self.__dataset_dict.items():
+            print(scenario)
+
+            cs_tr_data_array = dataset_dict[Constant.DNN.CS_TR_DATA]
+            cs_tr_label_array = dataset_dict[Constant.DNN.CS_TR_LABEL]
+            cs_te_data_array = dataset_dict[Constant.DNN.CS_TE_DATA]
+            cs_te_label_array = dataset_dict[Constant.DNN.CS_TE_LABEL]
+
+            cs_fig_save_path = Constant.DNN.CS_FIG_PATH + '_' + scenario + '.png'
+            param_cs_result_dict = self.__dnn(cs_tr_data_array, cs_tr_label_array, cs_te_data_array, cs_te_label_array,
+                                              cs_fig_save_path)
+            cs_result_dict[scenario] = param_cs_result_dict
+
+            gs_tr_data_array = dataset_dict[Constant.DNN.GS_TR_DATA]
+            gs_tr_label_array = dataset_dict[Constant.DNN.GS_TR_LABEL]
+            gs_te_data_array = dataset_dict[Constant.DNN.GS_TE_DATA]
+            gs_te_label_array = dataset_dict[Constant.DNN.GS_TE_LABEL]
+
+            gs_fig_save_path = Constant.DNN.GS_FIG_PATH + '_' + scenario + '.png'
+            param_gs_result_dict = self.__dnn(gs_tr_data_array, gs_tr_label_array, gs_te_data_array, gs_te_label_array,
+                                              gs_fig_save_path)
+            gs_result_dict[scenario] = param_gs_result_dict
+
+        with open(Constant.DNN.CS_RESULT_PATH, 'w') as f:
+            json.dump(cs_result_dict, f)
+        with open(Constant.DNN.GS_RESULT_PATH, 'w') as f:
+            json.dump(gs_result_dict, f)
+
+    @classmethod
+    def __dnn(cls, X_train, y_train, X_test, y_test, fig_save_path) -> dict:
+        # 데이터 스케일링
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_test_scaled = scaler.transform(X_test)
+
+        # 모델 정의
+        model = tf.keras.models.Sequential([
+            tf.keras.layers.Dense(64, input_shape=(X_train_scaled.shape[1],), activation='relu'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(16, activation='relu'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.5),
+            tf.keras.layers.Dense(4, activation='relu'),
+            tf.keras.layers.BatchNormalization(),
+            tf.keras.layers.Dropout(0.5),
+
+            tf.keras.layers.Dense(1, activation='sigmoid')
+        ])
+
+        # Nadam 옵티마이저에 학습률 설정
+        nadam_optimizer = tf.keras.optimizers.Nadam(learning_rate=0.001)
+
+        # 모델 컴파일
+        model.compile(optimizer=nadam_optimizer, loss='binary_crossentropy', metrics=['accuracy'])
+
+        # 콜백 정의 (종료 조건을 val_accuracy 기반으로 변경)
+        callbacks = [
+            tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=100,
+                                             restore_best_weights=True, mode='max')
+        ]
+
+        # 모델 학습
+        history = model.fit(X_train_scaled, y_train, validation_data=(X_test_scaled, y_test),
+                            epochs=1000, batch_size=32, callbacks=callbacks)
+
+        # 예측
+        y_pred = model.predict(X_test_scaled)
+        y_pred = (y_pred > 0.5).astype(int)
+
+        # 학습 과정 시각화
+        plt.figure(figsize=(16, 8))  # figsize를 (16, 8)로 설정하여 크기를 늘림
+
+        plt.subplot(1, 2, 1)
+        plt.plot(history.history['loss'], label='Train Loss')
+        plt.plot(history.history['val_loss'], label='Validation Loss')
+        plt.title('Model Loss')
+        plt.xlabel('Epoch')
+        plt.ylabel('Loss')
+        plt.legend()
+
+        plt.subplot(1, 2, 2)
+        plt.plot(history.history['accuracy'], label='Train Accuracy')
+        plt.plot(history.history['val_accuracy'], label='Validation Accuracy')
+        plt.title('Model Accuracy')
+        plt.xlabel('Epoch')
+        plt.ylabel('Accuracy')
+        plt.legend()
+        plt.savefig(fig_save_path)
+        plt.close()
+
+        result = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
+
+        return result
+
+    @classmethod
+    def __load_dataset(cls) -> dict:
+        dataset_dict = {}
+        for scenario in Constant.RAW_DATASET_PATH_DICT.keys():
+            cs_tr_data_path = Constant.DNN.CS_TR_DATA_PATH + '_' + scenario + '.csv'
+            cs_tr_label_path = Constant.DNN.CS_TR_LABEL_PATH + '_' + scenario + '.csv'
+            cs_te_data_path = Constant.DNN.CS_TE_DATA_PATH + '_' + scenario + '.csv'
+            cs_te_label_path = Constant.DNN.CS_TE_LABEL_PATH + '_' + scenario + '.csv'
+            gs_tr_data_path = Constant.DNN.GS_TR_DATA_PATH + '_' + scenario + '.csv'
+            gs_tr_label_path = Constant.DNN.GS_TR_LABEL_PATH + '_' + scenario + '.csv'
+            gs_te_data_path = Constant.DNN.GS_TE_DATA_PATH + '_' + scenario + '.csv'
+            gs_te_label_path = Constant.DNN.GS_TE_LABEL_PATH + '_' + scenario + '.csv'
+
+            cs_tr_data_df = pd.read_csv(cs_tr_data_path)
+            cs_tr_label_df = pd.read_csv(cs_tr_label_path)
+            cs_te_data_df = pd.read_csv(cs_te_data_path)
+            cs_te_label_df = pd.read_csv(cs_te_label_path)
+            gs_tr_data_df = pd.read_csv(gs_tr_data_path)
+            gs_tr_label_df = pd.read_csv(gs_tr_label_path)
+            gs_te_data_df = pd.read_csv(gs_te_data_path)
+            gs_te_label_df = pd.read_csv(gs_te_label_path)
+
+            dataset_dict[scenario] = {Constant.DNN.CS_TR_DATA: cs_tr_data_df,
+                                      Constant.DNN.CS_TR_LABEL: cs_tr_label_df,
+                                      Constant.DNN.CS_TE_DATA: cs_te_data_df,
+                                      Constant.DNN.CS_TE_LABEL: cs_te_label_df,
+                                      Constant.DNN.GS_TR_DATA: gs_tr_data_df,
+                                      Constant.DNN.GS_TR_LABEL: gs_tr_label_df,
+                                      Constant.DNN.GS_TE_DATA: gs_te_data_df,
+                                      Constant.DNN.GS_TE_LABEL: gs_te_label_df}
+
+        return dataset_dict
+
+    def __generate_dataset(self):
+        for scenario, path in Constant.RAW_DATASET_PATH_DICT.items():
+            print(scenario)
+
+            cs_stat_path = path + '/' + Constant.STAT + '/' + Constant.CS + '/' + Constant.STAT + '.json'
+            gs_stat_path = path + '/' + Constant.STAT + '/' + Constant.GS + '/' + Constant.STAT + '.json'
+
+            cs_top_path = path + '/' + Constant.TOP + '/' + Constant.CS + '/' + Constant.TOP + '.json'
+            gs_top_path = path + '/' + Constant.TOP + '/' + Constant.GS + '/' + Constant.TOP + '.json'
+
+            time_delta_path = path + '/' + Constant.STAT + '/' + Constant.CS + '/' + Constant.TIME_DELTA + '.json'
+
+            with open(cs_stat_path, 'r') as f:
+                cs_stat_scenario_dict = json.load(f)
+            with open(gs_stat_path, 'r') as f:
+                gs_stat_scenario_dict = json.load(f)
+            with open(cs_top_path, 'r') as f:
+                cs_top_scenario_dict = json.load(f)
+            with open(gs_top_path, 'r') as f:
+                gs_top_scenario_dict = json.load(f)
+            with open(time_delta_path, 'r') as f:
+                cs_time_delta_scenario_dict = json.load(f)
+
+            def __find_lowest_lists_1(lst, collector):
+                """ 재귀적으로 리스트를 탐색하며 최하위 리스트를 찾아 collector에 추가하는 함수 """
+                if all(isinstance(x, list) for x in lst):
+                    for sublst in lst:
+                        __find_lowest_lists_1(sublst, collector)
+                else:
+                    collector.append(lst)
+
+            def __calculate_average_size(lists):
+                """ 평균 리스트 크기를 계산하는 함수, 값이 모두 0인 리스트는 제외 """
+                valid_lists = [lst for lst in lists if any(x != 0 for x in lst)]
+                if valid_lists:
+                    average_size = int(np.mean([len(lst) for lst in valid_lists]))
+                else:
+                    average_size = 0
+                return average_size
+
+            def __resize_list(lst, target_length):
+                """ 선형 보간법을 이용하여 리스트의 크기를 조정하는 함수 """
+                if target_length == 0 or len(lst) == 0:
+                    return [0] * target_length
+                elif len(lst) == target_length:
+                    return lst
+                else:
+                    return list(np.interp(np.linspace(0, len(lst) - 1, num=target_length), np.arange(len(lst)), lst))
+
+            def __find_and_resize_lowest_lists(lst, average_size):
+                """ 재귀적으로 리스트를 탐색하며 최하위 리스트를 찾아 크기를 조정하는 함수 """
+                if all(isinstance(x, list) for x in lst):  # 모든 요소가 리스트인 경우 계속 탐색
+                    return [__find_and_resize_lowest_lists(sublst, average_size) for sublst in lst]
+                else:  # 최하위 리스트 발견
+                    if all(x == 0 for x in lst):  # 모든 값이 0인 리스트 처리
+                        return [0] * average_size
+                    else:  # 선형 보간법 적용
+                        return __resize_list(lst, average_size)
+
+            def __standardize_list_sizes(data):
+                """ 주어진 중첩 리스트의 최하위 리스트 크기를 통일하고 전체 구조를 반환하는 함수 """
+                # 모든 최하위 리스트를 수집
+                lowest_lists = []
+                __find_lowest_lists_1(data, lowest_lists)
+
+                # 평균 크기 계산
+                average_size = __calculate_average_size(lowest_lists)
+
+                # 중첩된 리스트 전체에 대해 최하위 리스트 크기를 조정
+                return __find_and_resize_lowest_lists(data, average_size)
+
+            def __extract_lowest_lists(lst):
+                """ 재귀적으로 모든 최하위 리스트를 찾아서 이중 리스트로 반환하는 함수 """
+                collector = []
+
+                def __find_lowest_lists_2(sublst):
+                    if isinstance(sublst, list) and any(isinstance(x, list) for x in sublst):
+                        for item in sublst:
+                            __find_lowest_lists_2(item)
+                    else:
+                        collector.append(sublst)
+
+                __find_lowest_lists_2(lst)
+                return collector
+
+            (adjusted_cs_normal_top_branch_list, adjusted_cs_attack_top_branch_list, adjusted_cs_normal_top_cycle_list,
+             adjusted_cs_attack_top_cycle_list, adjusted_cs_normal_top_instruction_list,
+             adjusted_cs_attack_top_instruction_list, adjusted_gs_normal_top_branch_list,
+             adjusted_gs_attack_top_branch_list, adjusted_gs_normal_top_cycle_list,
+             adjusted_gs_attack_top_cycle_list, adjusted_gs_normal_top_instruction_list,
+             adjusted_gs_attack_top_instruction_list) = self.__get_top_balanced_list(cs_top_scenario_dict,
+                                                                                     gs_top_scenario_dict)
+
+            adjusted_normal_td_list, adjusted_attack_td_list \
+                = self.__get_time_delta_balanced_list(cs_time_delta_scenario_dict)
+
+            (adjusted_cs_normal_stat_branch_list, adjusted_cs_attack_stat_branch_list,
+             adjusted_cs_normal_stat_cycle_list, adjusted_cs_attack_stat_cycle_list,
+             adjusted_cs_normal_stat_instruction_list, adjusted_cs_attack_stat_instruction_list,
+             adjusted_gs_normal_stat_branch_list, adjusted_gs_attack_stat_branch_list,
+             adjusted_gs_normal_stat_cycle_list, adjusted_gs_attack_stat_cycle_list,
+             adjusted_gs_normal_stat_instruction_list, adjusted_gs_attack_stat_instruction_list) \
+                = self.__get_stat_balanced_list(cs_stat_scenario_dict, gs_stat_scenario_dict)
+
+            temp_all_cs_normal_combination_list \
+                = __standardize_list_sizes([adjusted_cs_normal_stat_branch_list, adjusted_cs_normal_stat_cycle_list,
+                                            adjusted_cs_normal_stat_instruction_list,
+                                            adjusted_cs_normal_top_branch_list, adjusted_cs_normal_top_cycle_list,
+                                            adjusted_cs_normal_top_instruction_list, adjusted_normal_td_list])
+            temp_all_cs_attack_combination_list \
+                = __standardize_list_sizes([adjusted_cs_attack_stat_branch_list, adjusted_cs_attack_stat_cycle_list,
+                                            adjusted_cs_attack_stat_instruction_list,
+                                            adjusted_cs_attack_top_branch_list, adjusted_cs_attack_top_cycle_list,
+                                            adjusted_cs_attack_top_instruction_list, adjusted_attack_td_list])
+
+            temp_all_gs_normal_combination_list \
+                = __standardize_list_sizes([adjusted_gs_normal_stat_branch_list, adjusted_gs_normal_stat_cycle_list,
+                                            adjusted_gs_normal_stat_instruction_list,
+                                            adjusted_gs_normal_top_branch_list, adjusted_gs_normal_top_cycle_list,
+                                            adjusted_gs_normal_top_instruction_list, adjusted_normal_td_list])
+            temp_all_gs_attack_combination_list \
+                = __standardize_list_sizes([adjusted_gs_attack_stat_branch_list, adjusted_gs_attack_stat_cycle_list,
+                                            adjusted_gs_attack_stat_instruction_list,
+                                            adjusted_gs_attack_top_branch_list, adjusted_gs_attack_top_cycle_list,
+                                            adjusted_gs_attack_top_instruction_list, adjusted_attack_td_list])
+
+            all_cs_normal_combination_data_list = __extract_lowest_lists(temp_all_cs_normal_combination_list)
+            all_cs_attack_combination_data_list = __extract_lowest_lists(temp_all_cs_attack_combination_list)
+            all_gs_normal_combination_data_list = __extract_lowest_lists(temp_all_gs_normal_combination_list)
+            all_gs_attack_combination_data_list = __extract_lowest_lists(temp_all_gs_attack_combination_list)
+
+            all_cs_normal_combination_label_list = [Constant.NORMAL_LABEL] * len(all_cs_normal_combination_data_list[0])
+            all_cs_attack_combination_label_list = [Constant.ATTACK_LABEL] * len(all_cs_attack_combination_data_list[0])
+            all_gs_normal_combination_label_list = [Constant.NORMAL_LABEL] * len(all_gs_normal_combination_data_list[0])
+            all_gs_attack_combination_label_list = [Constant.ATTACK_LABEL] * len(all_gs_attack_combination_data_list[0])
+
+            all_cs_normal_combination_data_array = np.array(all_cs_normal_combination_data_list)
+            all_cs_normal_combination_data_array = all_cs_normal_combination_data_array.T
+            all_cs_attack_combination_data_array = np.array(all_cs_attack_combination_data_list)
+            all_cs_attack_combination_data_array = all_cs_attack_combination_data_array.T
+            all_gs_normal_combination_data_array = np.array(all_gs_normal_combination_data_list)
+            all_gs_normal_combination_data_array = all_gs_normal_combination_data_array.T
+            all_gs_attack_combination_data_array = np.array(all_gs_attack_combination_data_list)
+            all_gs_attack_combination_data_array = all_gs_attack_combination_data_array.T
+
+            all_cs_normal_combination_label_list.extend(all_cs_attack_combination_label_list)
+            all_gs_normal_combination_label_list.extend(all_gs_attack_combination_label_list)
+
+            cs_data_array = np.vstack((all_cs_normal_combination_data_array, all_cs_attack_combination_data_array))
+            gs_data_array = np.vstack((all_gs_normal_combination_data_array, all_gs_attack_combination_data_array))
+            cs_label_array = np.array(all_cs_normal_combination_label_list)
+            gs_label_array = np.array(all_gs_normal_combination_label_list)
+
+            cs_X_train, cs_X_test, cs_y_train, cs_y_test \
+                = train_test_split(cs_data_array, cs_label_array, test_size=0.2, random_state=42)
+            gs_X_train, gs_X_test, gs_y_train, gs_y_test \
+                = train_test_split(gs_data_array, gs_label_array, test_size=0.2, random_state=42)
+
+            df_cs_X_train = pd.DataFrame(cs_X_train)
+            df_cs_X_train.to_csv(Constant.DNN.CS_TR_DATA_PATH + '_' + scenario + '.csv', index=False)
+            df_cs_y_train = pd.DataFrame(cs_y_train)
+            df_cs_y_train.to_csv(Constant.DNN.CS_TR_LABEL_PATH + '_' + scenario + '.csv', index=False)
+
+            df_cs_X_test = pd.DataFrame(cs_X_test)
+            df_cs_X_test.to_csv(Constant.DNN.CS_TE_DATA_PATH + '_' + scenario + '.csv', index=False)
+            df_cs_y_test = pd.DataFrame(cs_y_test)
+            df_cs_y_test.to_csv(Constant.DNN.CS_TE_LABEL_PATH + '_' + scenario + '.csv', index=False)
+
+            df_gs_X_train = pd.DataFrame(gs_X_train)
+            df_gs_X_train.to_csv(Constant.DNN.GS_TR_DATA_PATH + '_' + scenario + '.csv', index=False)
+            df_gs_y_train = pd.DataFrame(gs_y_train)
+            df_gs_y_train.to_csv(Constant.DNN.GS_TR_LABEL_PATH + '_' + scenario + '.csv', index=False)
+
+            df_gs_X_test = pd.DataFrame(gs_X_test)
+            df_gs_X_test.to_csv(Constant.DNN.GS_TE_DATA_PATH + '_' + scenario + '.csv', index=False)
+            df_gs_y_test = pd.DataFrame(gs_y_test)
+            df_gs_y_test.to_csv(Constant.DNN.GS_TE_LABEL_PATH + '_' + scenario + '.csv', index=False)
+
+    @classmethod
+    def __split_dictionary(cls, data_dict):
+        return [data_dict[key] for key in data_dict]
+
+    def __get_top_balanced_list(self, cs_top_dict, gs_top_dict):
+        temp_list = self.__split_dictionary(cs_top_dict)
+        gs_top_dict = gs_top_dict[Constant.GS_ID]
+
+        def __sync_dictionaries(param_attack_dict, param_normal_dict) -> tuple:
+            temp_attack_dict = copy.deepcopy(param_attack_dict)
+            temp_normal_dict = copy.deepcopy(param_normal_dict)
+
+            # dict1의 모든 키에 대해 반복
+            for key in temp_attack_dict:
+                # 만약 키가 dict2에 없다면
+                if key not in temp_normal_dict:
+                    # dict2에 새로운 키를 추가하고, dict1의 해당 키의 리스트 길이만큼 0으로 채워진 리스트를 생성
+                    temp_normal_dict[key] = [0.0] * len(temp_attack_dict[key][Constant.DATA_POINT])
+                else:
+                    temp_normal_dict[key] = temp_attack_dict[key][Constant.DATA_POINT]
+
+            # dict2의 모든 키에 대해 반복
+            for key in temp_normal_dict:
+                # 만약 키가 dict1에 없다면
+                if key not in temp_attack_dict:
+                    # dict1에 새로운 키를 추가하고, dict2의 해당 키의 리스트 길이만큼 0으로 채워진 리스트를 생성
+                    temp_attack_dict[key] = [0.0] * len(temp_normal_dict[key][Constant.DATA_POINT])
+                else:
+                    temp_attack_dict[key] = temp_attack_dict[key][Constant.DATA_POINT]
+
+            return temp_attack_dict, temp_normal_dict
+
+        def __reorder_dictionaries(dict1, dict2) -> tuple:
+            # 두 딕셔너리에서 공통 키 추출
+            common_keys = set(dict1.keys()) & set(dict2.keys())
+
+            # 공통 키를 정렬
+            sorted_keys = sorted(common_keys)
+
+            # 두 딕셔너리를 정렬된 키 순서로 재배치
+            new_dict1 = {key: dict1[key] for key in sorted_keys}
+            new_dict2 = {key: dict2[key] for key in sorted_keys}
+
+            return new_dict1, new_dict2
+
+        def __get_adjusted_top_list(param_category_dict):
+            attack_dict = param_category_dict[Constant.ATTACK]
+            normal_dict = param_category_dict[Constant.NORMAL]
+
+            padded_attack_dict, padded_normal_dict = __sync_dictionaries(attack_dict, normal_dict)
+
+            reordered_attack_dict, reordered_normal_dict \
+                = __reorder_dictionaries(padded_attack_dict, padded_normal_dict)
+
+            attack_list = list(reordered_attack_dict.values())
+            normal_list = list(reordered_normal_dict.values())
+
+            adjusted_attack_list = self.__adjust_list_sizes(attack_list)
+            adjusted_normal_list = self.__adjust_list_sizes(normal_list)
+
+            return adjusted_normal_list, adjusted_attack_list
+
+        def __resize_multiple_lists(*data_groups, default_length=5):
+            # 모든 데이터 그룹에서 하위 리스트의 길이 수집
+            all_lengths = [len(sublist) for data in data_groups for group in data for sublist in group if
+                           not all(v == 0 for v in sublist)]
+
+            # 평균 길이 계산, 비어 있는 경우 기본값 사용
+            average_length = np.mean(all_lengths) if all_lengths else default_length
+
+            # 결과 저장할 리스트
+            new_data_groups = []
+
+            # 각 데이터 그룹에 대해
+            for data in data_groups:
+                new_data = []
+                for group in data:
+                    new_group = []
+                    for sublist in group:
+                        current_length = len(sublist)
+                        if current_length == 0 or all(v == 0 for v in sublist):
+                            # 현재 리스트가 비어 있거나 모두 0인 경우
+                            new_sublist = [0] * int(average_length)
+                        else:
+                            # 평균 길이에 맞게 리스트 조정
+                            new_indices = np.linspace(0, current_length - 1, int(average_length))
+                            new_sublist = np.interp(new_indices, np.arange(current_length), sublist).tolist()
+                        new_group.append(new_sublist)
+                    new_data.append(new_group)
+                new_data_groups.append(new_data)
+
+            return new_data_groups
+
+        param_branch_attack_list = []
+        param_branch_normal_list = []
+        param_cycle_attack_list = []
+        param_cycle_normal_list = []
+        param_instruction_attack_list = []
+        param_instruction_normal_list = []
+
+        for cs_station_dict in temp_list:
+            branch_dict = cs_station_dict[Constant.BRANCH]
+            cycle_dict = cs_station_dict[Constant.CYCLES]
+            instruction_dict = cs_station_dict[Constant.INSTRUCTIONS]
+
+            adjusted_branch_attack_list, adjusted_branch_normal_list = __get_adjusted_top_list(branch_dict)
+            adjusted_cycle_attack_list, adjusted_cycle_normal_list = __get_adjusted_top_list(cycle_dict)
+            adjusted_instruction_attack_list, adjusted_instruction_normal_list \
+                = __get_adjusted_top_list(instruction_dict)
+
+            param_branch_attack_list.append(adjusted_branch_attack_list)
+            param_branch_normal_list.append(adjusted_branch_normal_list)
+            param_cycle_attack_list.append(adjusted_cycle_attack_list)
+            param_cycle_normal_list.append(adjusted_cycle_normal_list)
+            param_instruction_attack_list.append(adjusted_instruction_attack_list)
+            param_instruction_normal_list.append(adjusted_instruction_normal_list)
+
+        temp_cs_attack_list \
+            = __resize_multiple_lists(param_branch_attack_list, param_cycle_attack_list, param_instruction_attack_list)
+        temp_cs_normal_list \
+            = __resize_multiple_lists(param_branch_normal_list, param_cycle_normal_list, param_instruction_normal_list)
+
+        adjusted_cs_branch_attack_list = temp_cs_attack_list[0]
+        adjusted_cs_cycle_attack_list = temp_cs_attack_list[1]
+        adjusted_cs_instruction_attack_list = temp_cs_attack_list[2]
+        adjusted_cs_branch_normal_list = temp_cs_normal_list[0]
+        adjusted_cs_cycle_normal_list = temp_cs_normal_list[1]
+        adjusted_cs_instruction_normal_list = temp_cs_normal_list[2]
+
+        param_gs_attack_branch_list, param_gs_normal_branch_list \
+            = __get_adjusted_top_list(gs_top_dict[Constant.BRANCH])
+        param_gs_attack_cycle_list, param_gs_normal_cycle_list \
+            = __get_adjusted_top_list(gs_top_dict[Constant.CYCLES])
+        param_gs_attack_instruction_list, param_gs_normal_instruction_list \
+            = __get_adjusted_top_list(gs_top_dict[Constant.INSTRUCTIONS])
+
+        temp_gs_attack_list = __resize_multiple_lists([param_gs_attack_branch_list], [param_gs_attack_cycle_list],
+                                                      [param_gs_attack_instruction_list])
+        temp_gs_normal_list = __resize_multiple_lists([param_gs_normal_branch_list], [param_gs_normal_cycle_list],
+                                                      [param_gs_normal_instruction_list])
+
+        adjusted_gs_attack_branch_list = temp_gs_attack_list[0][0]
+        adjusted_gs_attack_cycle_list = temp_gs_attack_list[1][0]
+        adjusted_gs_attack_instruction_list = temp_gs_attack_list[2][0]
+
+        adjusted_gs_normal_branch_list = temp_gs_normal_list[0][0]
+        adjusted_gs_normal_cycle_list = temp_gs_normal_list[1][0]
+        adjusted_gs_normal_instruction_list = temp_gs_normal_list[2][0]
+
+        return (adjusted_cs_branch_normal_list, adjusted_cs_branch_attack_list, adjusted_cs_cycle_normal_list,
+                adjusted_cs_cycle_attack_list, adjusted_cs_instruction_normal_list, adjusted_cs_instruction_attack_list,
+                adjusted_gs_normal_branch_list, adjusted_gs_attack_branch_list, adjusted_gs_normal_cycle_list,
+                adjusted_gs_attack_cycle_list, adjusted_gs_normal_instruction_list, adjusted_gs_attack_instruction_list)
+
+    @classmethod
+    def __get_time_delta_balanced_list(cls, time_delta_dict) -> tuple:
+        temp_list = cls.__split_dictionary(time_delta_dict)
+        normal_cs_list = []
+        attack_cs_list = []
+
+        for cs_data_dict in temp_list:
+            temp_normal_cs_list = cs_data_dict[Constant.TIME_DELTA][Constant.NORMAL][Constant.DATA_POINT]
+            temp_attack_cs_list = cs_data_dict[Constant.TIME_DELTA][Constant.ATTACK][Constant.DATA_POINT]
+
+            normal_cs_list.append(temp_normal_cs_list)
+            attack_cs_list.append(temp_attack_cs_list)
+
+        adjusted_normal_cs_list = cls.__adjust_list_sizes(normal_cs_list)
+        adjusted_attack_cs_list = cls.__adjust_list_sizes(attack_cs_list)
+
+        return adjusted_normal_cs_list, adjusted_attack_cs_list
+
+    @classmethod
+    def __get_stat_balanced_list(cls, cs_stat_dict, gs_stat_dict) -> tuple:
+        temp_list = cls.__split_dictionary(cs_stat_dict)
+        gs_dict = gs_stat_dict[Constant.GS_ID]
+
+        def __get_category_data_list(stat_dict) -> tuple:
+            branch_dict = stat_dict[Constant.BRANCH]
+            cycle_dict = stat_dict[Constant.CYCLES]
+            instruction_dict = stat_dict[Constant.INSTRUCTIONS]
+
+            __normal_branch_list = branch_dict.get(Constant.NORMAL, {}).get(Constant.DATA_POINT, None)
+            __attack_branch_list = branch_dict.get(Constant.ATTACK, {}).get(Constant.DATA_POINT, None)
+            __normal_cycle_list = cycle_dict.get(Constant.NORMAL, {}).get(Constant.DATA_POINT, None)
+            __attack_cycle_list = cycle_dict.get(Constant.ATTACK, {}).get(Constant.DATA_POINT, None)
+            __normal_instruction_list = instruction_dict.get(Constant.NORMAL, {}).get(Constant.DATA_POINT, None)
+            __attack_instruction_list = instruction_dict.get(Constant.ATTACK, {}).get(Constant.DATA_POINT, None)
+
+            return (__normal_branch_list, __attack_branch_list, __normal_cycle_list,
+                    __attack_cycle_list, __normal_instruction_list, __attack_instruction_list)
+
+        cs_normal_branch_list = []
+        cs_attack_branch_list = []
+        cs_normal_cycle_list = []
+        cs_attack_cycle_list = []
+        cs_normal_instruction_list = []
+        cs_attack_instruction_list = []
+
+        for cs_data_dict in temp_list:
+            (temp_normal_branch_list, temp_attack_branch_list, temp_normal_cycle_list,
+             temp_attack_cycle_list, temp_normal_instruction_list, temp_attack_instruction_list) \
+                = __get_category_data_list(cs_data_dict)
+
+            cs_normal_branch_list.append(temp_normal_branch_list)
+            cs_attack_branch_list.append(temp_attack_branch_list)
+            cs_normal_cycle_list.append(temp_normal_cycle_list)
+            cs_attack_cycle_list.append(temp_attack_cycle_list)
+            cs_normal_instruction_list.append(temp_normal_instruction_list)
+            cs_attack_instruction_list.append(temp_attack_instruction_list)
+
+        adjusted_cs_normal_branch_list = cls.__adjust_list_sizes(cs_normal_branch_list)
+        adjusted_cs_attack_branch_list = cls.__adjust_list_sizes(cs_attack_branch_list)
+        adjusted_cs_normal_cycle_list = cls.__adjust_list_sizes(cs_normal_cycle_list)
+        adjusted_cs_attack_cycle_list = cls.__adjust_list_sizes(cs_attack_cycle_list)
+        adjusted_cs_normal_instruction_list = cls.__adjust_list_sizes(cs_normal_instruction_list)
+        adjusted_cs_attack_instruction_list = cls.__adjust_list_sizes(cs_attack_instruction_list)
+
+        (gs_normal_branch_list, gs_attack_branch_list, gs_normal_cycle_list, gs_attack_cycle_list,
+         gs_normal_instruction_list, gs_attack_instruction_list) = __get_category_data_list(gs_dict)
+
+        return (adjusted_cs_normal_branch_list, adjusted_cs_attack_branch_list, adjusted_cs_normal_cycle_list,
+                adjusted_cs_attack_cycle_list, adjusted_cs_normal_instruction_list, adjusted_cs_attack_instruction_list,
+                gs_normal_branch_list, gs_attack_branch_list, gs_normal_cycle_list, gs_attack_cycle_list,
+                gs_normal_instruction_list, gs_attack_instruction_list)
+
+    @classmethod
+    def __adjust_list_sizes(cls, lists):
+        # 모든 0이 아닌, 숫자 리스트만 고려하여 평균 길이 계산
+        non_zero_lists = [lst for lst in lists if any(x != 0 for x in lst)]
+        sizes = [len(lst) for lst in non_zero_lists]
+        average_size = int(np.mean(sizes)) if sizes else 0
+
+        # 결과를 저장할 리스트 초기화
+        adjusted_lists = []
+
+        for lst in lists:
+            if not lst or not all(isinstance(x, (int, float)) for x in lst):  # 리스트가 비어 있거나, 숫자만 포함되었는지 확인
+                adjusted_list = [0] * average_size  # 비어 있거나 숫자가 아닌 원소를 포함한 리스트 처리
+                adjusted_lists.append(adjusted_list)
+                continue
+
+            current_size = len(lst)
+            if all(x == 0 for x in lst):
+                adjusted_list = [0] * average_size  # 모든 값이 0인 경우
+            else:
+                if current_size == 1 or len(set(lst)) == 1:
+                    adjusted_list = [lst[0]] * average_size  # 모든 값이 같은 경우
+                else:
+                    xp = np.arange(current_size)
+                    x = np.linspace(0, current_size - 1, average_size)
+                    try:
+                        adjusted_list = np.interp(x, xp, lst).tolist()
+                    except ValueError:
+                        adjusted_list = [np.mean(lst)] * average_size  # 보간 실패 시 평균으로 채움
+
+            adjusted_lists.append(adjusted_list)
+
+        return adjusted_lists

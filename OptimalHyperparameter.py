@@ -7,38 +7,38 @@ from sklearnex import patch_sklearn  # 인텔 최적화 활용
 patch_sklearn()  # scikit-learn 코드를 인텔 최적화로 패치
 
 
-class GridSearch:
+class OptimalHyperparameter:
     def __init__(self):
         self.__top_dict, self.__std_dict = self.__load_dataset()
 
     def rum_ml(self):
         classifier = Classifier()
 
-        top_all_dict = {}
+        top_grid_search_dict = {}
         for scenario, dataset in self.__top_dict.items():
-            print('TOP ALL Scenario: ' + scenario)
+            print('TOP Grid Search Scenario: ' + scenario)
 
             target_ml = Constant.GridSearch.top_target_ml_dict[scenario]
             result_dict, grid_params, grid_score = classifier.run_all(dataset, target_ml)
-            top_all_dict[scenario] = {Constant.CLASSIFICATION_RESULT: result_dict,
-                                      Constant.GRID_PARAMETER: grid_params, Constant.GRID_SCORE: grid_score}
-            print('TOP ALL Score: ' + str(grid_score))
+            top_grid_search_dict[scenario] = {Constant.CLASSIFICATION_RESULT: result_dict,
+                                              Constant.GRID_PARAMETER: grid_params, Constant.GRID_SCORE: grid_score}
+            print('TOP Grid Search Score: ' + str(grid_score))
 
         with open(Constant.GRID_TOP_ALL_PATH, 'w') as f:
-            json.dump(top_all_dict, f, default=self.__default_converter)
+            json.dump(top_grid_search_dict, f, default=self.__default_converter)
 
-        stat_all_dict = {}
+        stat_grid_search_dict = {}
         for scenario, dataset in self.__std_dict.items():
-            print('STAT ALL Scenario: ' + scenario)
+            print('STAT Grid Search Scenario: ' + scenario)
 
             target_ml = Constant.GridSearch.std_target_ml_dict[scenario]
             result_dict, grid_params, grid_score = classifier.run_all(dataset, target_ml)
-            stat_all_dict[scenario] = {Constant.CLASSIFICATION_RESULT: result_dict,
-                                       Constant.GRID_PARAMETER: grid_params, Constant.GRID_SCORE: grid_score}
-            print('STAT ALL Score: ' + str(grid_score))
+            stat_grid_search_dict[scenario] = {Constant.CLASSIFICATION_RESULT: result_dict,
+                                               Constant.GRID_PARAMETER: grid_params, Constant.GRID_SCORE: grid_score}
+            print('STAT Grid Search Score: ' + str(grid_score))
 
         with open(Constant.GRID_STAT_ALL_PATH, 'w') as f:
-            json.dump(stat_all_dict, f, default=self.__default_converter)
+            json.dump(stat_grid_search_dict, f, default=self.__default_converter)
 
         top_bayesian_dict = {}
         for scenario, dataset in self.__top_dict.items():
