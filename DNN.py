@@ -49,12 +49,10 @@ class DNN:
 
     @classmethod
     def __dnn(cls, X_train, y_train, X_test, y_test, fig_save_path) -> dict:
-        # 데이터 스케일링
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
         X_test_scaled = scaler.transform(X_test)
 
-        # 모델 정의
         model = tf.keras.models.Sequential([
             tf.keras.layers.Dense(64, input_shape=(X_train_scaled.shape[1],), activation='relu'),
             tf.keras.layers.BatchNormalization(),
@@ -69,28 +67,21 @@ class DNN:
             tf.keras.layers.Dense(1, activation='sigmoid')
         ])
 
-        # Nadam 옵티마이저에 학습률 설정
         nadam_optimizer = tf.keras.optimizers.Nadam(learning_rate=0.001)
-
-        # 모델 컴파일
         model.compile(optimizer=nadam_optimizer, loss='binary_crossentropy', metrics=['accuracy'])
 
-        # 콜백 정의 (종료 조건을 val_accuracy 기반으로 변경)
         callbacks = [
             tf.keras.callbacks.EarlyStopping(monitor='val_accuracy', patience=100,
                                              restore_best_weights=True, mode='max')
         ]
 
-        # 모델 학습
         history = model.fit(X_train_scaled, y_train, validation_data=(X_test_scaled, y_test),
                             epochs=1000, batch_size=32, callbacks=callbacks)
 
-        # 예측
         y_pred = model.predict(X_test_scaled)
         y_pred = (y_pred > 0.5).astype(int)
 
-        # 학습 과정 시각화
-        plt.figure(figsize=(16, 8))  # figsize를 (16, 8)로 설정하여 크기를 늘림
+        plt.figure(figsize=(16, 8))
 
         plt.subplot(1, 2, 1)
         plt.plot(history.history['loss'], label='Train Loss')
@@ -171,7 +162,6 @@ class DNN:
                 cs_time_delta_scenario_dict = json.load(f)
 
             def __find_lowest_lists_1(lst, collector):
-                """ 재귀적으로 리스트를 탐색하며 최하위 리스트를 찾아 collector에 추가하는 함수 """
                 if all(isinstance(x, list) for x in lst):
                     for sublst in lst:
                         __find_lowest_lists_1(sublst, collector)
@@ -179,7 +169,6 @@ class DNN:
                     collector.append(lst)
 
             def __calculate_average_size(lists):
-                """ 평균 리스트 크기를 계산하는 함수, 값이 모두 0인 리스트는 제외 """
                 valid_lists = [lst for lst in lists if any(x != 0 for x in lst)]
                 if valid_lists:
                     average_size = int(np.mean([len(lst) for lst in valid_lists]))
@@ -188,7 +177,6 @@ class DNN:
                 return average_size
 
             def __resize_list(lst, target_length):
-                """ 선형 보간법을 이용하여 리스트의 크기를 조정하는 함수 """
                 if target_length == 0 or len(lst) == 0:
                     return [0] * target_length
                 elif len(lst) == target_length:
@@ -197,29 +185,23 @@ class DNN:
                     return list(np.interp(np.linspace(0, len(lst) - 1, num=target_length), np.arange(len(lst)), lst))
 
             def __find_and_resize_lowest_lists(lst, average_size):
-                """ 재귀적으로 리스트를 탐색하며 최하위 리스트를 찾아 크기를 조정하는 함수 """
-                if all(isinstance(x, list) for x in lst):  # 모든 요소가 리스트인 경우 계속 탐색
+                if all(isinstance(x, list) for x in lst):
                     return [__find_and_resize_lowest_lists(sublst, average_size) for sublst in lst]
-                else:  # 최하위 리스트 발견
-                    if all(x == 0 for x in lst):  # 모든 값이 0인 리스트 처리
+                else:
+                    if all(x == 0 for x in lst):
                         return [0] * average_size
-                    else:  # 선형 보간법 적용
+                    else:
                         return __resize_list(lst, average_size)
 
             def __standardize_list_sizes(data):
-                """ 주어진 중첩 리스트의 최하위 리스트 크기를 통일하고 전체 구조를 반환하는 함수 """
-                # 모든 최하위 리스트를 수집
                 lowest_lists = []
                 __find_lowest_lists_1(data, lowest_lists)
 
-                # 평균 크기 계산
                 average_size = __calculate_average_size(lowest_lists)
 
-                # 중첩된 리스트 전체에 대해 최하위 리스트 크기를 조정
                 return __find_and_resize_lowest_lists(data, average_size)
 
             def __extract_lowest_lists(lst):
-                """ 재귀적으로 모든 최하위 리스트를 찾아서 이중 리스트로 반환하는 함수 """
                 collector = []
 
                 def __find_lowest_lists_2(sublst):
@@ -337,20 +319,14 @@ class DNN:
             temp_attack_dict = copy.deepcopy(param_attack_dict)
             temp_normal_dict = copy.deepcopy(param_normal_dict)
 
-            # dict1의 모든 키에 대해 반복
             for key in temp_attack_dict:
-                # 만약 키가 dict2에 없다면
                 if key not in temp_normal_dict:
-                    # dict2에 새로운 키를 추가하고, dict1의 해당 키의 리스트 길이만큼 0으로 채워진 리스트를 생성
                     temp_normal_dict[key] = [0.0] * len(temp_attack_dict[key][Constant.DATA_POINT])
                 else:
                     temp_normal_dict[key] = temp_attack_dict[key][Constant.DATA_POINT]
 
-            # dict2의 모든 키에 대해 반복
             for key in temp_normal_dict:
-                # 만약 키가 dict1에 없다면
                 if key not in temp_attack_dict:
-                    # dict1에 새로운 키를 추가하고, dict2의 해당 키의 리스트 길이만큼 0으로 채워진 리스트를 생성
                     temp_attack_dict[key] = [0.0] * len(temp_normal_dict[key][Constant.DATA_POINT])
                 else:
                     temp_attack_dict[key] = temp_attack_dict[key][Constant.DATA_POINT]
@@ -358,13 +334,10 @@ class DNN:
             return temp_attack_dict, temp_normal_dict
 
         def __reorder_dictionaries(dict1, dict2) -> tuple:
-            # 두 딕셔너리에서 공통 키 추출
             common_keys = set(dict1.keys()) & set(dict2.keys())
 
-            # 공통 키를 정렬
             sorted_keys = sorted(common_keys)
 
-            # 두 딕셔너리를 정렬된 키 순서로 재배치
             new_dict1 = {key: dict1[key] for key in sorted_keys}
             new_dict2 = {key: dict2[key] for key in sorted_keys}
 
@@ -388,17 +361,13 @@ class DNN:
             return adjusted_normal_list, adjusted_attack_list
 
         def __resize_multiple_lists(*data_groups, default_length=5):
-            # 모든 데이터 그룹에서 하위 리스트의 길이 수집
             all_lengths = [len(sublist) for data in data_groups for group in data for sublist in group if
                            not all(v == 0 for v in sublist)]
 
-            # 평균 길이 계산, 비어 있는 경우 기본값 사용
             average_length = np.mean(all_lengths) if all_lengths else default_length
 
-            # 결과 저장할 리스트
             new_data_groups = []
 
-            # 각 데이터 그룹에 대해
             for data in data_groups:
                 new_data = []
                 for group in data:
@@ -406,10 +375,8 @@ class DNN:
                     for sublist in group:
                         current_length = len(sublist)
                         if current_length == 0 or all(v == 0 for v in sublist):
-                            # 현재 리스트가 비어 있거나 모두 0인 경우
                             new_sublist = [0] * int(average_length)
                         else:
-                            # 평균 길이에 맞게 리스트 조정
                             new_indices = np.linspace(0, current_length - 1, int(average_length))
                             new_sublist = np.interp(new_indices, np.arange(current_length), sublist).tolist()
                         new_group.append(new_sublist)
@@ -553,33 +520,31 @@ class DNN:
 
     @classmethod
     def __adjust_list_sizes(cls, lists):
-        # 모든 0이 아닌, 숫자 리스트만 고려하여 평균 길이 계산
         non_zero_lists = [lst for lst in lists if any(x != 0 for x in lst)]
         sizes = [len(lst) for lst in non_zero_lists]
         average_size = int(np.mean(sizes)) if sizes else 0
 
-        # 결과를 저장할 리스트 초기화
         adjusted_lists = []
 
         for lst in lists:
-            if not lst or not all(isinstance(x, (int, float)) for x in lst):  # 리스트가 비어 있거나, 숫자만 포함되었는지 확인
-                adjusted_list = [0] * average_size  # 비어 있거나 숫자가 아닌 원소를 포함한 리스트 처리
+            if not lst or not all(isinstance(x, (int, float)) for x in lst):
+                adjusted_list = [0] * average_size
                 adjusted_lists.append(adjusted_list)
                 continue
 
             current_size = len(lst)
             if all(x == 0 for x in lst):
-                adjusted_list = [0] * average_size  # 모든 값이 0인 경우
+                adjusted_list = [0] * average_size
             else:
                 if current_size == 1 or len(set(lst)) == 1:
-                    adjusted_list = [lst[0]] * average_size  # 모든 값이 같은 경우
+                    adjusted_list = [lst[0]] * average_size
                 else:
                     xp = np.arange(current_size)
                     x = np.linspace(0, current_size - 1, average_size)
                     try:
                         adjusted_list = np.interp(x, xp, lst).tolist()
                     except ValueError:
-                        adjusted_list = [np.mean(lst)] * average_size  # 보간 실패 시 평균으로 채움
+                        adjusted_list = [np.mean(lst)] * average_size
 
             adjusted_lists.append(adjusted_list)
 

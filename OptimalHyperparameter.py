@@ -2,9 +2,9 @@ import json
 import numpy as np
 import Constant
 from Classifier import Classifier
-from sklearnex import patch_sklearn  # 인텔 최적화 활용
+from sklearnex import patch_sklearn
 
-patch_sklearn()  # scikit-learn 코드를 인텔 최적화로 패치
+patch_sklearn()
 
 
 class OptimalHyperparameter:
@@ -69,7 +69,7 @@ class OptimalHyperparameter:
     @classmethod
     def __default_converter(cls, o):
         if isinstance(o, np.int64):
-            return int(o)  # or str(o) if you prefer to convert it to string
+            return int(o)
         raise TypeError
 
     @classmethod
