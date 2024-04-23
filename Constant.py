@@ -105,6 +105,21 @@ INSTRUCTIONS = 'instructions'
 ATTACK_LABEL = 1
 NORMAL_LABEL = 0
 
+CS_CYCLE_ATTACK = 'cs_cycle_attack'
+CS_CYCLE_NORMAL = 'cs_cycle_normal'
+GS_CYCLE_ATTACK = 'gs_cycle_attack'
+GS_CYCLE_NORMAL = 'gs_cycle_normal'
+
+CS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/STAT_Cycle/cs_stat_cycle_data'
+CS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/STAT_Cycle/cs_stat_cycle_label'
+GS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/STAT_Cycle/gs_stat_cycle_data'
+GS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/STAT_Cycle/gs_stat_cycle_label'
+
+CS_STAT_CYCLE_DATA = 'CS_STAT_CYCLE_DATA'
+CS_STAT_CYCLE_LABEL = 'CS_STAT_CYCLE_LABEL'
+GS_STAT_CYCLE_DATA = 'GS_STAT_CYCLE_DATA'
+GS_STAT_CYCLE_LABEL = 'GS_STAT_CYCLE_LABEL'
+
 
 class GridSearch:
     AB = 'ada_boost'
@@ -235,6 +250,9 @@ class DNN:
 
     CS_RESULT_PATH = 'Result/DNN/CS/result.json'
     GS_RESULT_PATH = 'Result/DNN/GS/result.json'
+
+    CS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/CS/stat_cycle.json'
+    GS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/GS/stat_cycle.json'
 
 
 GRID_PARAMETER = 'grid_param'

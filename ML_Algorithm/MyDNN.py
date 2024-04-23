@@ -9,7 +9,8 @@ class MyDNN:
         pass
 
     @classmethod
-    def _run_dnn(cls, X_train, y_train, X_test, y_test, fig_save_path) -> dict:
+    def _run_dnn(cls, X_train, y_train, X_test, y_test, fig_save_path, stat_cycle_data_df, stat_cycle_label_df) \
+            -> tuple:
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
         X_test_scaled = scaler.transform(X_test)
@@ -64,4 +65,11 @@ class MyDNN:
 
         result = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
 
-        return result
+        stat_cycle_scaled = scaler.transform(stat_cycle_data_df)
+        stat_cycle_pred = model.predict(stat_cycle_scaled)
+        stat_cycle_pred = (stat_cycle_pred > 0.5).astype(int)
+
+        stat_cycle_result \
+            = classification_report(stat_cycle_label_df, stat_cycle_pred, zero_division=0, output_dict=True)
+
+        return result, stat_cycle_result
