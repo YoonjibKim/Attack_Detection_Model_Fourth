@@ -6,4 +6,4 @@ if __name__ == '__main__':
     # gridSearch.rum_ml()
 
     dnn = DNN()
-    dnn.run()
+    # dnn.run()

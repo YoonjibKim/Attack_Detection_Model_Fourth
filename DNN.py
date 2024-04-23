@@ -10,14 +10,16 @@ from ML_Algorithm.MyDNN import MyDNN
 class DNN(MyDNN):
     def __init__(self):
         MyDNN.__init__(self)
-        # self.__generate_dataset()
-        self.__dataset_dict, self.__stat_cycle_dict = self.__load_dataset()
+        self.__generate_dataset()
+        self.__dataset_dict, self.__original_stat_cycle_dict, self.__processed_stat_cycle_dict = self.__load_dataset()
 
     def run(self):
         cs_result_dict = {}
         gs_result_dict = {}
-        cs_stat_cycle_dict = {}
-        gs_stat_cycle_dict = {}
+        original_cs_stat_cycle_dict = {}
+        original_gs_stat_cycle_dict = {}
+        processed_cs_stat_cycle_dict = {}
+        processed_gs_stat_cycle_dict = {}
 
         for scenario, dataset_dict in self.__dataset_dict.items():
             print(scenario)
@@ -27,46 +29,59 @@ class DNN(MyDNN):
             cs_te_data_array = dataset_dict[Constant.DNN.CS_TE_DATA]
             cs_te_label_array = dataset_dict[Constant.DNN.CS_TE_LABEL]
 
-            cs_stat_cycle_data_df = self.__stat_cycle_dict[scenario][Constant.CS_STAT_CYCLE_DATA]
-            cs_stat_cycle_label_df = self.__stat_cycle_dict[scenario][Constant.CS_STAT_CYCLE_LABEL]
+            original_cs_stat_cycle_data_df = self.__original_stat_cycle_dict[scenario][Constant.CS_STAT_CYCLE_DATA]
+            original_cs_stat_cycle_label_df = self.__original_stat_cycle_dict[scenario][Constant.CS_STAT_CYCLE_LABEL]
+            processed_cs_stat_cycle_data_df = self.__processed_stat_cycle_dict[scenario][Constant.CS_STAT_CYCLE_DATA]
+            processed_cs_stat_cycle_label_df = self.__processed_stat_cycle_dict[scenario][Constant.CS_STAT_CYCLE_LABEL]
 
             cs_fig_save_path = Constant.DNN.CS_FIG_PATH + '_' + scenario + '.png'
-            param_cs_result_dict, cs_stat_cycle_result = self._run_dnn(cs_tr_data_array, cs_tr_label_array,
-                                                                       cs_te_data_array, cs_te_label_array,
-                                                                       cs_fig_save_path, cs_stat_cycle_data_df,
-                                                                       cs_stat_cycle_label_df)
+            param_cs_result_dict, original_cs_stat_cycle_result, processed_cs_stat_cycle_result \
+                = self._run_dnn(cs_tr_data_array, cs_tr_label_array, cs_te_data_array, cs_te_label_array,
+                                cs_fig_save_path, original_cs_stat_cycle_data_df, original_cs_stat_cycle_label_df,
+                                processed_cs_stat_cycle_data_df, processed_cs_stat_cycle_label_df)
+
             cs_result_dict[scenario] = param_cs_result_dict
-            cs_stat_cycle_dict[scenario] = cs_stat_cycle_result
+            original_cs_stat_cycle_dict[scenario] = original_cs_stat_cycle_result
+            processed_cs_stat_cycle_dict[scenario] = processed_cs_stat_cycle_result
 
             gs_tr_data_array = dataset_dict[Constant.DNN.GS_TR_DATA]
             gs_tr_label_array = dataset_dict[Constant.DNN.GS_TR_LABEL]
             gs_te_data_array = dataset_dict[Constant.DNN.GS_TE_DATA]
             gs_te_label_array = dataset_dict[Constant.DNN.GS_TE_LABEL]
 
-            gs_stat_cycle_data_df = self.__stat_cycle_dict[scenario][Constant.GS_STAT_CYCLE_DATA]
-            gs_stat_cycle_label_df = self.__stat_cycle_dict[scenario][Constant.GS_STAT_CYCLE_LABEL]
+            original_gs_stat_cycle_data_df = self.__original_stat_cycle_dict[scenario][Constant.GS_STAT_CYCLE_DATA]
+            original_gs_stat_cycle_label_df = self.__original_stat_cycle_dict[scenario][Constant.GS_STAT_CYCLE_LABEL]
+            processed_gs_stat_cycle_data_df = self.__processed_stat_cycle_dict[scenario][Constant.GS_STAT_CYCLE_DATA]
+            processed_gs_stat_cycle_label_df = self.__processed_stat_cycle_dict[scenario][Constant.GS_STAT_CYCLE_LABEL]
 
             gs_fig_save_path = Constant.DNN.GS_FIG_PATH + '_' + scenario + '.png'
-            param_gs_result_dict, gs_stat_cycle_result = self._run_dnn(gs_tr_data_array, gs_tr_label_array,
-                                                                       gs_te_data_array, gs_te_label_array,
-                                                                       gs_fig_save_path, gs_stat_cycle_data_df,
-                                                                       gs_stat_cycle_label_df)
+            param_gs_result_dict, original_gs_stat_cycle_result, processed_gs_stat_cycle_result \
+                = self._run_dnn(gs_tr_data_array, gs_tr_label_array, gs_te_data_array, gs_te_label_array,
+                                gs_fig_save_path, original_gs_stat_cycle_data_df, original_gs_stat_cycle_label_df,
+                                processed_gs_stat_cycle_data_df, processed_gs_stat_cycle_label_df)
+
             gs_result_dict[scenario] = param_gs_result_dict
-            gs_stat_cycle_dict[scenario] = gs_stat_cycle_result
+            original_gs_stat_cycle_dict[scenario] = original_gs_stat_cycle_result
+            processed_gs_stat_cycle_dict[scenario] = processed_gs_stat_cycle_result
 
         with open(Constant.DNN.CS_RESULT_PATH, 'w') as f:
             json.dump(cs_result_dict, f)
         with open(Constant.DNN.GS_RESULT_PATH, 'w') as f:
             json.dump(gs_result_dict, f)
-        with open(Constant.DNN.CS_STAT_CYCLE_RESULT_PATH, 'w') as f:
-            json.dump(cs_stat_cycle_dict, f)
-        with open(Constant.DNN.GS_STAT_CYCLE_RESULT_PATH, 'w') as f:
-            json.dump(gs_stat_cycle_dict, f)
+        with open(Constant.DNN.ORIGINAL_CS_STAT_CYCLE_RESULT_PATH, 'w') as f:
+            json.dump(original_cs_stat_cycle_dict, f)
+        with open(Constant.DNN.ORIGINAL_GS_STAT_CYCLE_RESULT_PATH, 'w') as f:
+            json.dump(original_gs_stat_cycle_dict, f)
+        with open(Constant.DNN.PROCESSED_CS_STAT_CYCLE_RESULT_PATH, 'w') as f:
+            json.dump(processed_cs_stat_cycle_dict, f)
+        with open(Constant.DNN.PROCESSED_GS_STAT_CYCLE_RESULT_PATH, 'w') as f:
+            json.dump(processed_gs_stat_cycle_dict, f)
 
     @classmethod
     def __load_dataset(cls) -> tuple:
         dataset_dict = {}
-        stat_cycle_dict = {}
+        original_stat_cycle_dict = {}
+        processed_stat_cycle_dict = {}
 
         for scenario in Constant.RAW_DATASET_PATH_DICT.keys():
             cs_tr_data_path = Constant.DNN.CS_TR_DATA_PATH + '_' + scenario + '.csv'
@@ -96,24 +111,42 @@ class DNN(MyDNN):
                                       Constant.DNN.GS_TE_DATA: gs_te_data_df,
                                       Constant.DNN.GS_TE_LABEL: gs_te_label_df}
 
-            cs_stat_cycle_data_path = Constant.CS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv'
-            cs_stat_cycle_label_path = Constant.CS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv'
-            gs_stat_cycle_data_path = Constant.GS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv'
-            gs_stat_cycle_label_path = Constant.GS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv'
+            original_cs_stat_cycle_data_path = Constant.ORIGINAL_CS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv'
+            original_cs_stat_cycle_label_path = Constant.ORIGINAL_CS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv'
+            original_gs_stat_cycle_data_path = Constant.ORIGINAL_GS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv'
+            original_gs_stat_cycle_label_path = Constant.ORIGINAL_GS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv'
 
-            cs_stat_cycle_data_df = pd.read_csv(cs_stat_cycle_data_path)
-            cs_stat_cycle_label_df = pd.read_csv(cs_stat_cycle_label_path)
-            gs_stat_cycle_data_df = pd.read_csv(gs_stat_cycle_data_path)
-            gs_stat_cycle_label_df = pd.read_csv(gs_stat_cycle_label_path)
+            original_cs_stat_cycle_data_df = pd.read_csv(original_cs_stat_cycle_data_path)
+            original_cs_stat_cycle_label_df = pd.read_csv(original_cs_stat_cycle_label_path)
+            original_gs_stat_cycle_data_df = pd.read_csv(original_gs_stat_cycle_data_path)
+            original_gs_stat_cycle_label_df = pd.read_csv(original_gs_stat_cycle_label_path)
 
-            stat_cycle_dict[scenario] = {Constant.CS_STAT_CYCLE_DATA: cs_stat_cycle_data_df,
-                                         Constant.CS_STAT_CYCLE_LABEL: cs_stat_cycle_label_df,
-                                         Constant.GS_STAT_CYCLE_DATA: gs_stat_cycle_data_df,
-                                         Constant.GS_STAT_CYCLE_LABEL: gs_stat_cycle_label_df}
+            original_stat_cycle_dict[scenario] = {Constant.CS_STAT_CYCLE_DATA: original_cs_stat_cycle_data_df,
+                                                  Constant.CS_STAT_CYCLE_LABEL: original_cs_stat_cycle_label_df,
+                                                  Constant.GS_STAT_CYCLE_DATA: original_gs_stat_cycle_data_df,
+                                                  Constant.GS_STAT_CYCLE_LABEL: original_gs_stat_cycle_label_df}
 
-        return dataset_dict, stat_cycle_dict
+            processed_cs_stat_cycle_data_path = Constant.PROCESSED_CS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv'
+            processed_cs_stat_cycle_label_path = Constant.PROCESSED_CS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv'
+            processed_gs_stat_cycle_data_path = Constant.PROCESSED_GS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv'
+            processed_gs_stat_cycle_label_path = Constant.PROCESSED_GS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv'
+
+            processed_cs_stat_cycle_data_df = pd.read_csv(processed_cs_stat_cycle_data_path)
+            processed_cs_stat_cycle_label_df = pd.read_csv(processed_cs_stat_cycle_label_path)
+            processed_gs_stat_cycle_data_df = pd.read_csv(processed_gs_stat_cycle_data_path)
+            processed_gs_stat_cycle_label_df = pd.read_csv(processed_gs_stat_cycle_label_path)
+
+            processed_stat_cycle_dict[scenario] = {Constant.CS_STAT_CYCLE_DATA: processed_cs_stat_cycle_data_df,
+                                                   Constant.CS_STAT_CYCLE_LABEL: processed_cs_stat_cycle_label_df,
+                                                   Constant.GS_STAT_CYCLE_DATA: processed_gs_stat_cycle_data_df,
+                                                   Constant.GS_STAT_CYCLE_LABEL: processed_gs_stat_cycle_label_df}
+
+        return dataset_dict, original_stat_cycle_dict, processed_stat_cycle_dict
 
     def __generate_dataset(self):
+        cs_combined_sample_size_dict = {}
+        gs_combined_sample_size_dict = {}
+
         for scenario, path in Constant.RAW_DATASET_PATH_DICT.items():
             print(scenario)
 
@@ -189,6 +222,14 @@ class DNN(MyDNN):
                 __find_lowest_lists_2(lst)
                 return collector
 
+            def __get_top_size(normal_top_list, attack_top_list) -> tuple:
+                avg_cs_top_feature_size = len(normal_top_list[0])
+                avg_cs_normal_top_data_size = len(normal_top_list[0][0])
+                avg_cs_attack_top_data_size = len(attack_top_list[0][0])
+                avg_cs_top_data_size = avg_cs_normal_top_data_size + avg_cs_attack_top_data_size
+
+                return avg_cs_top_feature_size, avg_cs_top_data_size
+
             (adjusted_cs_normal_top_branch_list, adjusted_cs_attack_top_branch_list, adjusted_cs_normal_top_cycle_list,
              adjusted_cs_attack_top_cycle_list, adjusted_cs_normal_top_instruction_list,
              adjusted_cs_attack_top_instruction_list, adjusted_gs_normal_top_branch_list,
@@ -197,8 +238,36 @@ class DNN(MyDNN):
              adjusted_gs_attack_top_instruction_list) = self.__get_top_balanced_list(cs_top_scenario_dict,
                                                                                      gs_top_scenario_dict)
 
+            avg_cs_top_branch_feature_size, avg_cs_top_branch_data_size \
+                = __get_top_size(adjusted_cs_normal_top_branch_list, adjusted_cs_attack_top_branch_list)
+            avg_cs_top_cycle_feature_size, avg_cs_top_cycle_data_size \
+                = __get_top_size(adjusted_cs_normal_top_cycle_list, adjusted_cs_attack_top_cycle_list)
+            avg_cs_top_instruction_feature_size, avg_cs_top_instruction_data_size \
+                = __get_top_size(adjusted_cs_normal_top_instruction_list, adjusted_cs_attack_top_instruction_list)
+
+            avg_cs_top_branch_feature_size *= 3
+            avg_cs_top_cycle_feature_size *= 3
+            avg_cs_top_instruction_feature_size *= 3
+            cs_top_feature_size \
+                = avg_cs_top_branch_feature_size + avg_cs_top_cycle_feature_size + avg_cs_top_instruction_feature_size
+            cs_top_data_size = avg_cs_top_branch_data_size
+
+            avg_gs_top_branch_feature_size, avg_gs_top_branch_data_size \
+                = __get_top_size([adjusted_gs_normal_top_branch_list], [adjusted_gs_attack_top_branch_list])
+            avg_gs_top_cycle_feature_size, avg_gs_top_cycle_data_size \
+                = __get_top_size([adjusted_gs_normal_top_cycle_list], [adjusted_gs_attack_top_cycle_list])
+            avg_gs_top_instruction_feature_size, avg_gs_top_instruction_data_size \
+                = __get_top_size([adjusted_gs_normal_top_instruction_list],
+                                 [adjusted_gs_attack_top_instruction_list])
+            gs_top_feature_size \
+                = avg_gs_top_branch_feature_size + avg_gs_top_cycle_feature_size + avg_gs_top_instruction_feature_size
+            gs_top_data_size = avg_gs_top_branch_data_size
+
             adjusted_normal_td_list, adjusted_attack_td_list \
                 = self.__get_time_delta_balanced_list(cs_time_delta_scenario_dict)
+
+            td_feature_size = 3
+            td_data_size = len(adjusted_normal_td_list[0]) + len(adjusted_attack_td_list[0])
 
             (adjusted_cs_normal_stat_branch_list, adjusted_cs_attack_stat_branch_list,
              adjusted_cs_normal_stat_cycle_list, adjusted_cs_attack_stat_cycle_list,
@@ -207,6 +276,52 @@ class DNN(MyDNN):
              adjusted_gs_normal_stat_cycle_list, adjusted_gs_attack_stat_cycle_list,
              adjusted_gs_normal_stat_instruction_list, adjusted_gs_attack_stat_instruction_list, stat_cycle_dict) \
                 = self.__get_stat_balanced_list(cs_stat_scenario_dict, gs_stat_scenario_dict)
+
+            avg_cs_stat_branch_feature_size = 3
+            avg_cs_stat_branch_data_size \
+                = len(adjusted_cs_normal_stat_branch_list[0]) + len(adjusted_cs_attack_stat_branch_list[0])
+            avg_cs_stat_cycle_feature_size = 3
+            avg_cs_stat_cycle_data_size \
+                = len(adjusted_cs_normal_stat_cycle_list[0]) + len(adjusted_cs_attack_stat_cycle_list[0])
+            avg_cs_stat_instruction_feature_size = 3
+            avg_cs_stat_instruction_data_size \
+                = len(adjusted_cs_normal_stat_instruction_list[0]) + len(adjusted_cs_attack_stat_instruction_list[0])
+
+            cs_stat_feature_size = (avg_cs_stat_branch_feature_size + avg_cs_stat_cycle_feature_size
+                                    + avg_cs_stat_instruction_feature_size)
+            cs_stat_data_size = avg_cs_stat_branch_data_size
+
+            avg_gs_stat_branch_feature_size = 1
+            avg_gs_stat_branch_data_size \
+                = len(adjusted_gs_normal_stat_branch_list) + len(adjusted_gs_attack_stat_branch_list)
+            avg_gs_stat_cycle_feature_size = 1
+            avg_gs_stat_cycle_data_size \
+                = len(adjusted_gs_normal_stat_cycle_list) + len(adjusted_gs_attack_stat_cycle_list)
+            avg_gs_stat_instruction_feature_size = 1
+            avg_gs_stat_instruction_data_size \
+                = len(adjusted_gs_normal_stat_instruction_list) + len(adjusted_gs_attack_stat_instruction_list)
+
+            gs_stat_feature_size = (avg_gs_stat_branch_feature_size + avg_gs_stat_cycle_feature_size
+                                    + avg_gs_stat_instruction_feature_size)
+            gs_stat_data_size = avg_gs_stat_branch_data_size
+
+            param_cs_feature_dim_dict = {Constant.TOP: cs_top_feature_size, Constant.STAT: cs_stat_feature_size,
+                                         Constant.TIME_DELTA: td_feature_size}
+            param_cs_feature_size_dict = {Constant.TOP: cs_top_data_size, Constant.STAT: cs_stat_data_size,
+                                          Constant.TIME_DELTA: td_data_size}
+            param_gs_feature_dim_dict = {Constant.TOP: gs_top_feature_size, Constant.STAT: gs_stat_feature_size,
+                                         Constant.TIME_DELTA: td_feature_size}
+            param_gs_feature_size_dict = {Constant.TOP: gs_top_data_size, Constant.STAT: gs_stat_data_size,
+                                          Constant.TIME_DELTA: td_data_size}
+
+            param_original_avg_cs_feature_info_dict = {Constant.FEATURE_DIMENSION: param_cs_feature_dim_dict,
+                                                       Constant.SAMPLING_COUNT: param_cs_feature_size_dict}
+            param_original_avg_gs_feature_info_dict = {Constant.FEATURE_DIMENSION: param_gs_feature_dim_dict,
+                                                       Constant.SAMPLING_COUNT: param_gs_feature_size_dict}
+            with open(Constant.CS_FEATURE_INFO_PATH + '_' + scenario + '.json', 'w') as f:
+                json.dump(param_original_avg_cs_feature_info_dict, f)
+            with open(Constant.GS_FEATURE_INFO_PATH + '_' + scenario + '.json', 'w') as f:
+                json.dump(param_original_avg_gs_feature_info_dict, f)
 
             temp_all_cs_normal_combination_list \
                 = __standardize_list_sizes([adjusted_cs_normal_stat_branch_list, adjusted_cs_normal_stat_cycle_list,
@@ -251,6 +366,11 @@ class DNN(MyDNN):
             all_cs_normal_combination_label_list.extend(all_cs_attack_combination_label_list)
             all_gs_normal_combination_label_list.extend(all_gs_attack_combination_label_list)
 
+            combined_cs_sample_count = len(all_cs_normal_combination_label_list)
+            combined_gs_sample_count = len(all_gs_normal_combination_label_list)
+            cs_combined_sample_size_dict[scenario] = combined_cs_sample_count
+            gs_combined_sample_size_dict[scenario] = combined_gs_sample_count
+
             cs_data_array = np.vstack((all_cs_normal_combination_data_array, all_cs_attack_combination_data_array))
             gs_data_array = np.vstack((all_gs_normal_combination_data_array, all_gs_attack_combination_data_array))
             cs_label_array = np.array(all_cs_normal_combination_label_list)
@@ -263,6 +383,26 @@ class DNN(MyDNN):
 
             target_cs_cycle_list = cs_X_train[:, 3].tolist()
             target_gs_cycle_list = gs_X_train[:, 3].tolist()
+
+            temp_processed_cs_stat_cycle_array = cs_X_test[:, 3]
+            cs_processed_stat_cycle_array = np.zeros((temp_processed_cs_stat_cycle_array.size, cs_X_test.shape[1]))
+            cs_processed_stat_cycle_array[:, 3] = temp_processed_cs_stat_cycle_array
+            temp_processed_gs_stat_cycle_array = gs_X_test[:, 3]
+            gs_processed_stat_cycle_array = np.zeros((temp_processed_gs_stat_cycle_array.size, gs_X_test.shape[1]))
+            gs_processed_stat_cycle_array[:, 3] = temp_processed_gs_stat_cycle_array
+
+            cs_processed_stat_cycle_data_df = pd.DataFrame(cs_processed_stat_cycle_array)
+            cs_processed_stat_cycle_data_df.to_csv(Constant.PROCESSED_CS_STAT_CYCLE_DATA_PATH + '_' +
+                                                   scenario + '.csv', index=False)
+            cs_processed_stat_cycle_label_df = pd.DataFrame(cs_y_test)
+            cs_processed_stat_cycle_label_df.to_csv(Constant.PROCESSED_CS_STAT_CYCLE_LABEL_PATH + '_' +
+                                                    scenario + '.csv', index=False)
+            gs_processed_stat_cycle_data_df = pd.DataFrame(gs_processed_stat_cycle_array)
+            gs_processed_stat_cycle_data_df.to_csv(Constant.PROCESSED_GS_STAT_CYCLE_DATA_PATH + '_' +
+                                                   scenario + '.csv', index=False)
+            gs_processed_stat_cycle_label_df = pd.DataFrame(gs_y_test)
+            gs_processed_stat_cycle_label_df.to_csv(Constant.PROCESSED_GS_STAT_CYCLE_LABEL_PATH + '_' +
+                                                    scenario + '.csv', index=False)
 
             ref_cs_attack_cycle_list = stat_cycle_dict[Constant.CS_CYCLE_ATTACK]
             ref_cs_normal_cycle_list = stat_cycle_dict[Constant.CS_CYCLE_NORMAL]
@@ -301,14 +441,16 @@ class DNN(MyDNN):
             padded_unique_gs_cycle_data_array[:, 3] = unique_gs_cycle_data_array
 
             unique_cs_cycle_data_df = pd.DataFrame(padded_unique_cs_cycle_data_array)
-            unique_cs_cycle_data_df.to_csv(Constant.CS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv', index=False)
+            unique_cs_cycle_data_df.to_csv(Constant.ORIGINAL_CS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv',
+                                           index=False)
             cs_cycle_label_df = pd.DataFrame(unique_cs_cycle_label_array)
-            cs_cycle_label_df.to_csv(Constant.CS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv', index=False)
+            cs_cycle_label_df.to_csv(Constant.ORIGINAL_CS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv', index=False)
 
             unique_gs_cycle_data_df = pd.DataFrame(padded_unique_gs_cycle_data_array)
-            unique_gs_cycle_data_df.to_csv(Constant.GS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv', index=False)
+            unique_gs_cycle_data_df.to_csv(Constant.ORIGINAL_GS_STAT_CYCLE_DATA_PATH + '_' + scenario + '.csv',
+                                           index=False)
             gs_cycle_label_df = pd.DataFrame(unique_gs_cycle_label_array)
-            gs_cycle_label_df.to_csv(Constant.GS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv', index=False)
+            gs_cycle_label_df.to_csv(Constant.ORIGINAL_GS_STAT_CYCLE_LABEL_PATH + '_' + scenario + '.csv', index=False)
 
             df_cs_X_train = pd.DataFrame(cs_X_train)
             df_cs_X_train.to_csv(Constant.DNN.CS_TR_DATA_PATH + '_' + scenario + '.csv', index=False)
@@ -329,6 +471,11 @@ class DNN(MyDNN):
             df_gs_X_test.to_csv(Constant.DNN.GS_TE_DATA_PATH + '_' + scenario + '.csv', index=False)
             df_gs_y_test = pd.DataFrame(gs_y_test)
             df_gs_y_test.to_csv(Constant.DNN.GS_TE_LABEL_PATH + '_' + scenario + '.csv', index=False)
+
+        with open(Constant.CS_COMBINED_SIZE_PATH, 'w') as f:
+            json.dump(cs_combined_sample_size_dict, f)
+        with open(Constant.GS_COMBINED_SIZE_PATH, 'w') as f:
+            json.dump(gs_combined_sample_size_dict, f)
 
     @classmethod
     def __split_dictionary(cls, data_dict):

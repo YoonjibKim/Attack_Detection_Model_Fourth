@@ -91,7 +91,14 @@ TIME_DELTA = 'time_diff'
 CS = 'CS'
 GS = 'GS'
 SAMPLING_COUNT = 'sampling_count'
+FEATURE_DIMENSION = 'feature_dimension'
 DATA_POINT = 'data_point'
+
+CS_FEATURE_INFO_PATH = 'Result/DNN/CS/original_feature_info'
+GS_FEATURE_INFO_PATH = 'Result/DNN/GS/original_feature_info'
+
+CS_COMBINED_SIZE_PATH = 'Result/DNN/CS/combined_size.json'
+GS_COMBINED_SIZE_PATH = 'Result/DNN/GS/combined_size.json'
 
 CS_1_ID = '2-39-89-25'
 CS_2_ID = '2-39-139-28'
@@ -110,10 +117,15 @@ CS_CYCLE_NORMAL = 'cs_cycle_normal'
 GS_CYCLE_ATTACK = 'gs_cycle_attack'
 GS_CYCLE_NORMAL = 'gs_cycle_normal'
 
-CS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/STAT_Cycle/cs_stat_cycle_data'
-CS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/STAT_Cycle/cs_stat_cycle_label'
-GS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/STAT_Cycle/gs_stat_cycle_data'
-GS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/STAT_Cycle/gs_stat_cycle_label'
+ORIGINAL_CS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/Original_STAT_Cycle/cs_stat_cycle_data'
+ORIGINAL_CS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/Original_STAT_Cycle/cs_stat_cycle_label'
+ORIGINAL_GS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/Original_STAT_Cycle/gs_stat_cycle_data'
+ORIGINAL_GS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/Original_STAT_Cycle/gs_stat_cycle_label'
+
+PROCESSED_CS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/Processed_STAT_Cycle/cs_stat_cycle_data'
+PROCESSED_CS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/Processed_STAT_Cycle/cs_stat_cycle_label'
+PROCESSED_GS_STAT_CYCLE_DATA_PATH = 'Dataset/DNN/Processed_STAT_Cycle/gs_stat_cycle_data'
+PROCESSED_GS_STAT_CYCLE_LABEL_PATH = 'Dataset/DNN/Processed_STAT_Cycle/gs_stat_cycle_label'
 
 CS_STAT_CYCLE_DATA = 'CS_STAT_CYCLE_DATA'
 CS_STAT_CYCLE_LABEL = 'CS_STAT_CYCLE_LABEL'
@@ -251,8 +263,10 @@ class DNN:
     CS_RESULT_PATH = 'Result/DNN/CS/result.json'
     GS_RESULT_PATH = 'Result/DNN/GS/result.json'
 
-    CS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/CS/stat_cycle.json'
-    GS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/GS/stat_cycle.json'
+    ORIGINAL_CS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/CS/original_stat_cycle.json'
+    ORIGINAL_GS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/GS/original_stat_cycle.json'
+    PROCESSED_CS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/CS/processed_stat_cycle.json'
+    PROCESSED_GS_STAT_CYCLE_RESULT_PATH = 'Result/DNN/GS/processed_stat_cycle.json'
 
 
 GRID_PARAMETER = 'grid_param'

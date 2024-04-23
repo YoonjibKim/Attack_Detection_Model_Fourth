@@ -9,7 +9,8 @@ class MyDNN:
         pass
 
     @classmethod
-    def _run_dnn(cls, X_train, y_train, X_test, y_test, fig_save_path, stat_cycle_data_df, stat_cycle_label_df) \
+    def _run_dnn(cls, X_train, y_train, X_test, y_test, fig_save_path, original_stat_cycle_data_df,
+                 original_stat_cycle_label_df, processed_stat_cycle_data_df, processed_stat_cycle_label_df) \
             -> tuple:
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train)
@@ -65,11 +66,18 @@ class MyDNN:
 
         result = classification_report(y_test, y_pred, zero_division=0, output_dict=True)
 
-        stat_cycle_scaled = scaler.transform(stat_cycle_data_df)
-        stat_cycle_pred = model.predict(stat_cycle_scaled)
-        stat_cycle_pred = (stat_cycle_pred > 0.5).astype(int)
+        original_stat_cycle_scaled = scaler.transform(original_stat_cycle_data_df)
+        original_stat_cycle_pred = model.predict(original_stat_cycle_scaled)
+        original_stat_cycle_pred = (original_stat_cycle_pred > 0.5).astype(int)
 
-        stat_cycle_result \
-            = classification_report(stat_cycle_label_df, stat_cycle_pred, zero_division=0, output_dict=True)
+        original_stat_cycle_result = classification_report(original_stat_cycle_label_df, original_stat_cycle_pred,
+                                                           zero_division=0, output_dict=True)
 
-        return result, stat_cycle_result
+        processed_stat_cycle_scaled = scaler.transform(processed_stat_cycle_data_df)
+        processed_stat_cycle_pred = model.predict(processed_stat_cycle_scaled)
+        processed_stat_cycle_pred = (processed_stat_cycle_pred > 0.5).astype(int)
+
+        processed_stat_cycle_result = classification_report(processed_stat_cycle_label_df, processed_stat_cycle_pred,
+                                                            zero_division=0, output_dict=True)
+
+        return result, original_stat_cycle_result, processed_stat_cycle_result
